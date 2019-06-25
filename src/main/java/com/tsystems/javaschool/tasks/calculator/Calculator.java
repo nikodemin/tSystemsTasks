@@ -1,5 +1,6 @@
 package com.tsystems.javaschool.tasks.calculator;
 
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,13 +19,34 @@ public class Calculator
 
     public String evaluate(String statement)
     {
-        if(statement == null)
+        if(statement == null || statement.contains(",") || statement.equals("")
+        || statement.contains("..") || statement.contains("**") || statement.contains("//")
+                || statement.contains("++") || statement.contains("--"))
+            return null;
+
+        //count parenthesis
+        int openP = 0;
+        int closeP = 0;
+        Pattern pattern = Pattern.compile("\\(");
+        Matcher matcher = pattern.matcher(statement);
+        while (matcher.find())
+        {
+            ++openP;
+        }
+        pattern = Pattern.compile("\\)");
+        matcher = pattern.matcher(statement);
+        while (matcher.find())
+        {
+            ++closeP;
+        }
+
+        if(openP!=closeP)
             return null;
 
         statement = statement.replaceAll(" ","");
 
-        Pattern pattern = Pattern.compile("\\((.+)\\)");
-        Matcher matcher = pattern.matcher(statement);
+        pattern = Pattern.compile("\\((.+)\\)");
+        matcher = pattern.matcher(statement);
         while (matcher.find())
         {
             String subQuery = matcher.group(1);
@@ -64,41 +86,41 @@ public class Calculator
         }
         //handle calculations
 
-        boolean started = false;    //started calculation like 3*4/2
-        Double interimRes = 0.0;
-        List<Double> numsToSum = new ArrayList<>();
-        for (int i = 0; i < operands.size(); i++)
+        try
         {
-            if(operands.get(i).equals("*") || operands.get(i).equals("/"))
-                if(!started)
-                {
-                    started = true;
-                    interimRes = operands.get(i).equals("*")?
-                            nums.get(i)*nums.get(i+1):nums.get(i)/nums.get(i+1);
-                }
-                else
-                {
-                    interimRes = operands.get(i).equals("*")?
-                            interimRes*nums.get(i+1):interimRes/nums.get(i+1);
-                }
-            else
+            for (int i = 0; i < operands.size(); i++)
             {
-                started = false;
-                numsToSum.add(interimRes);
-                interimRes = 0.0;
+                if (operands.get(i).equals("/"))
+                {
+                    if (nums.get(i + 1) == 0.0)
+                        return null;
+                    nums.set(i + 1, nums.get(i) / nums.get(i + 1));
+                    nums.set(i, 0.0);
+                } else if (operands.get(i).equals("*"))
+                {
+                    nums.set(i + 1, nums.get(i) * nums.get(i + 1));
+                    nums.set(i, 0.0);
+                }
             }
         }
-
-        for (Double d:numsToSum)
+        catch (IndexOutOfBoundsException e)
         {
-            System.out.println("SUM="+d);
+            return null;
         }
 
         Double result = 0.0;
+        for (Double d:nums)
+        {
+            System.out.println("SUM="+d);
+            result+= d;
+        }
 
         if(result%1==0)
             return String.format("%.0f",result);
-        return String.format("%.4f",result);
+
+        String strResult = String.format("%.4f",result);
+        strResult = strResult.replace(',','.').replaceFirst("0+$","");
+        return strResult;
     }
 
 }
