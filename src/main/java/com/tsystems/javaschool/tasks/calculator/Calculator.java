@@ -21,7 +21,7 @@ public class Calculator
         if(statement == null)
             return null;
 
-        statement = statement.replace(" ","");
+        statement = statement.replaceAll(" ","");
 
         Pattern pattern = Pattern.compile("\\((.+)\\)");
         Matcher matcher = pattern.matcher(statement);
@@ -34,79 +34,71 @@ public class Calculator
         }
 
         System.out.println("STATEMENT0="+statement);
-        List<String> nums = new ArrayList<>();
-        pattern = Pattern.compile("-?[0-9]+");
+
+        List<Double> nums = new ArrayList<>();
+        pattern = Pattern.compile("-?[0-9]+\\.?[0-9]*");
         matcher = pattern.matcher(statement);
         while (matcher.find())
         {
-            nums.add(matcher.group(0));
-            System.out.println("MATCHER="+matcher.group(0));
-        }
-        if(nums.size()>2)
-        {
-            //division
-            statement = evalSubQuery(statement, "-?[0-9]+\\/[0-9]+");
-            //multiplication
-            statement = evalSubQuery(statement, "-?[0-9]+\\*[0-9]+");
-            //substract
-            statement = evalSubQuery(statement, "-?[0-9]+\\-[0-9]+");
-            //addition
-            statement = evalSubQuery(statement, "-?[0-9]+\\+[0-9]+");
+            nums.add(Double.parseDouble(matcher.group(0)));
+            System.out.println("NUM="+Double.parseDouble(matcher.group(0)));
         }
 
-        //here statement will be like 4+3 or 1/3
-        System.out.println("STATEMENT="+statement);
-        System.out.println(statement.split("[\\/\\*\\+\\-]").length);
-        if (statement.split("[\\/\\*\\+\\-]").length==1)
-            return statement;
-        Double leftOp = Double.parseDouble(nums.get(0));
-        Double rigthOp = Double.parseDouble(nums.get(1));
-        String operator;
-        Double result = leftOp;
-
-        pattern = Pattern.compile("[0-9]+([\\*\\/\\+\\-])[0-9]+");
+        //replace minuses between nums with pluses
+        pattern = Pattern.compile("[0-9]+-[0-9]+");
         matcher = pattern.matcher(statement);
-        if (matcher.find())
-            operator = matcher.group(1);
-        else
-            return null;
-        System.out.println("OPERATOR="+operator);
-        System.out.println("left="+leftOp);
-        System.out.println("rigth="+rigthOp);
-        switch (operator)
+        while (matcher.find())
         {
-            case "/":
-                result/= rigthOp;
-                break;
-            case "*":
-                result*= rigthOp;
-                break;
-            case "+":
-                result+= rigthOp;
-                break;
-            case "-":
-                result+= rigthOp;
-                break;
+            statement = statement.replaceFirst(matcher.group(0),
+                    matcher.group(0).replaceFirst("-","+"));
+        }
+        System.out.println("STATEMENT1="+statement);
+
+        List<String> operands = new ArrayList<>();
+        pattern = Pattern.compile("[\\/\\*\\+]");
+        matcher = pattern.matcher(statement);
+        while (matcher.find())
+        {
+            operands.add(matcher.group(0));
+            System.out.println("OPERAND="+matcher.group(0));
+        }
+        //handle calculations
+
+        boolean started = false;    //started calculation like 3*4/2
+        Double interimRes = 0.0;
+        List<Double> numsToSum = new ArrayList<>();
+        for (int i = 0; i < operands.size(); i++)
+        {
+            if(operands.get(i).equals("*") || operands.get(i).equals("/"))
+                if(!started)
+                {
+                    started = true;
+                    interimRes = operands.get(i).equals("*")?
+                            nums.get(i)*nums.get(i+1):nums.get(i)/nums.get(i+1);
+                }
+                else
+                {
+                    interimRes = operands.get(i).equals("*")?
+                            interimRes*nums.get(i+1):interimRes/nums.get(i+1);
+                }
+            else
+            {
+                started = false;
+                numsToSum.add(interimRes);
+                interimRes = 0.0;
+            }
         }
 
+        for (Double d:numsToSum)
+        {
+            System.out.println("SUM="+d);
+        }
+
+        Double result = 0.0;
 
         if(result%1==0)
             return String.format("%.0f",result);
         return String.format("%.4f",result);
-    }
-
-    private String evalSubQuery(String statement, String regexp)
-    {
-        Pattern pattern = Pattern.compile(regexp);
-        Matcher matcher = pattern.matcher(statement);
-        while (matcher.find())
-        {
-            String subQuery = matcher.group(0);
-            System.out.println("OLD2="+statement);
-            statement = statement.replace(subQuery,evaluate(subQuery));
-            System.out.println("NEW2="+statement);
-        }
-        return statement;
     }
 
 }
